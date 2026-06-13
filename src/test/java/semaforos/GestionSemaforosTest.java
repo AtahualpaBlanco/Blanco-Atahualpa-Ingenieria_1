@@ -4,12 +4,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Date;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
 
 public class GestionSemaforosTest {
 
@@ -98,6 +101,40 @@ public class GestionSemaforosTest {
         for (Miembro m : equipo.getMiembros()) {
             assertTrue(m.isLibre(), "El miembro " + m.getNombre() + " debe estar libre.");
         }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Alta", "Media", "Baja"})
+    public void testPrioridadesValidasParametrizado(String prioridadStr) {
+        Prioridad p = null;
+        if (prioridadStr.equalsIgnoreCase("Alta")) {
+            p = Prioridad.ALTA;
+        } else if (prioridadStr.equalsIgnoreCase("Media")) {
+            p = Prioridad.MEDIA;
+        } else if (prioridadStr.equalsIgnoreCase("Baja")) {
+            p = Prioridad.BAJA;
+        }
+
+        Persona denunciante = new Persona("Laura", "laura@gmail.com");
+        Denuncia denuncia = new Denuncia("D-PARAM", new Date(), "Calle X", "Calle Y", "Problema faro", p, denunciante, semaforoDefecto);
+        
+        assertTrue(denuncia.esPrioridadValida(), "La prioridad " + prioridadStr + " debería ser válida.");
+    }
+
+    @Test
+    public void testMetricasEstadisticasEHistorial() {
+        int nroSemaforo = 999;
+        Semaforo semaforo = new Semaforo(nroSemaforo, "Averiado", "Calle 1 y Calle 2", TipoFaro.SMART_LED);
+        service.agregarSemaforo(semaforo);
+
+        // Registrar 3 denuncias diferentes al mismo semáforo
+        service.registrarDenuncia("D-999-1", new Date(), "Calle 1", "Calle 2", "Luz rota", Prioridad.ALTA, "Denunciante 1", "d1@mail.com", nroSemaforo);
+        service.registrarDenuncia("D-999-2", new Date(), "Calle 1", "Calle 2", "Cortocircuito", Prioridad.MEDIA, "Denunciante 2", "d2@mail.com", nroSemaforo);
+        service.registrarDenuncia("D-999-3", new Date(), "Calle 1", "Calle 2", "Palo caído", Prioridad.BAJA, "Denunciante 3", "d3@mail.com", nroSemaforo);
+
+        // Invocar método del servicio y verificar que el resultado sea exactamente 3
+        int cantidadDenuncias = service.getCantidadDenunciasPorSemaforo(nroSemaforo);
+        assertEquals(3, cantidadDenuncias, "El semáforo debe tener exactamente 3 denuncias registradas.");
     }
 }
 
