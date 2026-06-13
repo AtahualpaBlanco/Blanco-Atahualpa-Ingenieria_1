@@ -3,11 +3,13 @@ package semaforos;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Date;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class GestionSemaforosTest {
 
@@ -38,4 +40,27 @@ public class GestionSemaforosTest {
         Luz mismaLuz = semaforoDefecto.getLuces().get(0);
         assertSame(primeraLuz, mismaLuz, "La referencia de la luz obtenida debe ser exactamente la misma que la guardada internamente.");
     }
+
+    @Test
+    @Timeout(value = 400, unit = TimeUnit.MILLISECONDS)
+    public void testRobustezAnteDuplicadosConTimeout() {
+        // Configurar una denuncia
+        Persona denunciante = new Persona("Juan Gomez", "juan@gmail.com");
+        Denuncia denuncia = new Denuncia("D-001", new Date(), "Calle A", "Calle B", "Faro roto", Prioridad.ALTA, denunciante, semaforoDefecto);
+        
+        // Crear una primera orden
+        OrdenComposicion orden1 = new OrdenComposicion("O-001", new Date(), "Reparar faro roto", denuncia);
+        
+        // Asignarle la orden
+        service.asignarOrden(denuncia, orden1);
+
+        // Crear una segunda orden
+        OrdenComposicion orden2 = new OrdenComposicion("O-002", new Date(), "Reparar faro de nuevo", denuncia);
+
+        // Verificar que intentar asociar la segunda orden lanza OrdenYaAsignadaException
+        assertThrows(OrdenYaAsignadaException.class, () -> {
+            service.asignarOrden(denuncia, orden2);
+        }, "Debería haber lanzado OrdenYaAsignadaException porque la denuncia ya tiene una orden.");
+    }
 }
+
