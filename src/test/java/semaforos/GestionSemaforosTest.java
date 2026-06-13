@@ -62,5 +62,42 @@ public class GestionSemaforosTest {
             service.asignarOrden(denuncia, orden2);
         }, "Debería haber lanzado OrdenYaAsignadaException porque la denuncia ya tiene una orden.");
     }
+
+    @Test
+    public void testFlujoReparacionExitoso() {
+        // Crear miembros
+        List<Miembro> miembros = new ArrayList<>();
+        miembros.add(new Miembro("M1", "Carlos", "Técnico", false, true)); // responsable
+        miembros.add(new Miembro("M2", "Ana", "Técnico", false, false));
+        miembros.add(new Miembro("M3", "Pedro", "Ayudante", false, false));
+        miembros.add(new Miembro("M4", "Luis", "Ayudante", false, false));
+
+        // Crear equipo
+        EquipoControl equipo = new EquipoControl("EQ-01", "Electricidad", miembros);
+        // El equipo inicialmente está ocupado para simular la asignación
+        equipo.setEstado(EstadoEquipo.OCUPADO);
+        service.agregarEquipo(equipo);
+
+        // Crear denuncia y orden
+        Persona denunciante = new Persona("Maria Lopez", "maria@gmail.com");
+        Denuncia denuncia = new Denuncia("D-002", new Date(), "Calle X", "Calle Y", "Faro quemado", Prioridad.MEDIA, denunciante, semaforoDefecto);
+        OrdenComposicion orden = new OrdenComposicion("O-002", new Date(), "Cambiar foco", denuncia);
+        orden.setEquipoAsignado(equipo);
+
+        service.asignarOrden(denuncia, orden);
+
+        // Simular la finalización de la reparación
+        service.finalizarReparacion(orden);
+
+        // Verificar estado de la orden y del equipo
+        assertTrue(orden.estaCompleta(), "La orden debería estar completa.");
+        assertEquals(EstadoEquipo.LIBRE, equipo.getEstado(), "El estado del equipo debería ser LIBRE.");
+
+        // Recorrer los 4 miembros y verificar que todos estén libres
+        assertEquals(4, equipo.getMiembros().size(), "El equipo debe tener 4 miembros.");
+        for (Miembro m : equipo.getMiembros()) {
+            assertTrue(m.isLibre(), "El miembro " + m.getNombre() + " debe estar libre.");
+        }
+    }
 }
 
